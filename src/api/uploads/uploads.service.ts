@@ -1,17 +1,12 @@
-import { randomUUID } from 'crypto';
+import { pool } from '../../config/db';
 import { UploadRecord } from './uploads.types';
 
-// Temporary in-memory store — will move to the database once PostgreSQL is set up.
-const records = new Map<string, UploadRecord>();
-
-export function saveUploadRecord(type: 'palm' | 'face', filename: string, filepath: string): UploadRecord {
-  const record: UploadRecord = {
-    id: randomUUID(),
-    type,
-    filename,
-    path: filepath,
-    uploadedAt: new Date().toISOString(),
-  };
-  records.set(record.id, record);
-  return record;
+export async function saveUploadRecord(type: 'palm' | 'face', filename: string, filepath: string): Promise<UploadRecord> {
+  const result = await pool.query(
+    `INSERT INTO uploads (type, filename, path)
+     VALUES ($1, $2, $3)
+     RETURNING id, type, filename, path, uploaded_at AS "uploadedAt"`,
+    [type, filename, filepath]
+  );
+  return result.rows[0];
 }

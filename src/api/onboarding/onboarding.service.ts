@@ -1,20 +1,21 @@
-import { randomUUID } from 'crypto';
+import { pool } from '../../config/db';
 import { BirthDataInput, BirthDataRecord } from './onboarding.types';
 
-// Temporary in-memory store — will be replaced by a PostgreSQL repository
-// once the database is set up. Data does not persist across server restarts.
-const records = new Map<string, BirthDataRecord>();
-
-export function saveBirthData(input: BirthDataInput): BirthDataRecord {
-  const record: BirthDataRecord = {
-    ...input,
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  records.set(record.id, record);
-  return record;
+export async function saveBirthData(input: BirthDataInput): Promise<BirthDataRecord> {
+  const result = await pool.query(
+    `INSERT INTO birth_inputs (first_name, dob, birthplace, birth_time)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, first_name AS "firstName", dob::text, birthplace, birth_time AS "birthTime", created_at AS "createdAt"`,
+    [input.firstName, input.dob, input.birthplace, input.birthTime || null]
+  );
+  return result.rows[0];
 }
 
-export function getBirthDataById(id: string): BirthDataRecord | undefined {
-  return records.get(id);
+export async function getBirthDataById(id: string): Promise<BirthDataRecord | undefined> {
+  const result = await pool.query(
+    `SELECT id, first_name AS "firstName", dob::text, birthplace, birth_time AS "birthTime", created_at AS "createdAt"
+     FROM birth_inputs WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0];
 }

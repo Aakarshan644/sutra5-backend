@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { saveUploadRecord } from './uploads.service';
 
-export function handleUpload(req: Request, res: Response) {
+export async function handleUpload(req: Request, res: Response) {
   const type = req.params.type as 'palm' | 'face';
 
   if (type !== 'palm' && type !== 'face') {
@@ -12,6 +12,11 @@ export function handleUpload(req: Request, res: Response) {
     return res.status(400).json({ error: 'No file was uploaded.' });
   }
 
-  const record = saveUploadRecord(type, req.file.filename, req.file.path);
-  res.status(201).json(record);
+  try {
+    const record = await saveUploadRecord(type, req.file.filename, req.file.path);
+    res.status(201).json(record);
+  } catch (err) {
+    console.error('Failed to save upload record:', err);
+    res.status(500).json({ error: 'Failed to save upload record.' });
+  }
 }
